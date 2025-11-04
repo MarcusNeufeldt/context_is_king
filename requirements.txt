@@ -1,0 +1,13 @@
+# Core dependencies
+openai>=1.0.0                    # OpenRouter API (OpenAI-compatible)
+pydantic>=2.0.0                  # Structured data validation
+python-dotenv>=1.0.0             # Environment variable management
+
+# Vector operations and embeddings
+sentence-transformers>=2.0.0     # Local embeddings for vector store
+numpy>=1.24.0                    # Numerical operations
+faiss-cpu>=1.7.0                 # Efficient similarity search (optional, fallback to numpy)
+
+# Utilities
+rich>=13.0.0                     # Beautiful terminal output
+tiktoken>=0.5.0                  # Token counting
