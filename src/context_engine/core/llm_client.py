@@ -108,29 +108,60 @@ class LLMClient:
         messages: List[Message],
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs
-    ) -> tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, Dict[str, Any], Optional[List[Dict[str, Any]]]]:
         """
         Get a completion from the LLM (non-streaming).
 
+        Args:
+            messages: Conversation messages
+            temperature: Sampling temperature
+            max_tokens: Max tokens to generate
+            tools: Tool definitions in OpenAI format
+
         Returns:
-            (response_content, usage_stats)
+            (response_content, usage_stats, tool_calls)
+            tool_calls is None if no tools were called
         """
         # Convert messages to OpenAI format
         openai_messages = [msg.to_openai_format() for msg in messages]
 
+        # Build API call parameters
+        api_params = {
+            "model": self.config.model,
+            "messages": openai_messages,
+            "temperature": temperature or self.config.temperature,
+            "max_tokens": max_tokens or self.config.max_tokens,
+            "top_p": self.config.top_p,
+        }
+
+        # Add tools if provided
+        if tools:
+            api_params["tools"] = tools
+            api_params["tool_choice"] = "auto"  # Let model decide
+
         # Make API call
-        response = self.client.chat.completions.create(
-            model=self.config.model,
-            messages=openai_messages,
-            temperature=temperature or self.config.temperature,
-            max_tokens=max_tokens or self.config.max_tokens,
-            top_p=self.config.top_p,
-            **kwargs
-        )
+        response = self.client.chat.completions.create(**api_params, **kwargs)
 
         # Extract response
-        content = response.choices[0].message.content
+        message = response.choices[0].message
+        content = message.content or ""
+
+        # Extract tool calls if present
+        tool_calls = None
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            tool_calls = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments
+                    }
+                }
+                for tc in message.tool_calls
+            ]
 
         # Usage statistics
         usage = {
@@ -140,7 +171,7 @@ class LLMClient:
             "model": response.model,
         }
 
-        return content, usage
+        return content, usage, tool_calls
 
     def complete_stream(
         self,

@@ -114,6 +114,45 @@ agent = Agent(AgentConfig(
 # Agent now has persistent memory that consolidates automatically
 ```
 
+### With Automatic Tool Calling
+
+```python
+from src.context_engine import Agent, AgentConfig, tool
+
+# Define tools with decorator
+@tool(description="Get current weather for a city")
+def get_weather(city: str, units: str = "celsius") -> dict:
+    """Get weather information."""
+    return {"temp": 20, "condition": "sunny", "city": city}
+
+@tool(description="Perform mathematical calculations")
+def calculator(a: float, b: float, operation: str = "add") -> dict:
+    """Calculate a op b."""
+    ops = {"add": a + b, "multiply": a * b}
+    return {"result": ops.get(operation, 0)}
+
+# Create agent with tools enabled
+agent = Agent(AgentConfig(
+    name="ToolAgent",
+    enable_tools=True,  # Enable automatic tool calling
+    system_prompt="You have access to tools. Use them when needed."
+))
+
+# Register tools
+agent.add_tool_function(get_weather)
+agent.add_tool_function(calculator)
+
+# Agent automatically detects when to use tools!
+response = agent.process_message("What's the weather in Paris?")
+# → Agent sees question, decides to call get_weather("Paris")
+# → Executes tool, gets result
+# → Responds: "The weather in Paris is 20°C and sunny"
+
+response = agent.process_message("Calculate 25 * 17")
+# → Agent calls calculator(25, 17, "multiply")
+# → Returns: "The result of 25 * 17 is 425"
+```
+
 ### Multi-Agent System
 
 ```python
@@ -160,13 +199,14 @@ summary = agent.bake_experience()  # Converts raw history → summary
 
 ## Examples
 
-The `examples/` directory contains 5 comprehensive examples:
+The `examples/` directory contains 6 comprehensive examples:
 
 1. **01_basic_agent.py** - Simple conversational agent
 2. **02_layered_memory.py** - STM/LTM with consolidation
 3. **03_multi_agent.py** - Context isolation demo
 4. **04_self_baking.py** - All three self-baking strategies
 5. **05_research_assistant.py** - Full system combining all patterns
+6. **06_tool_calling_agent.py** - **NEW!** Automatic tool detection and calling
 
 ### Running Examples
 
@@ -185,6 +225,9 @@ python examples/04_self_baking.py
 
 # Full research assistant
 python examples/05_research_assistant.py
+
+# Automatic tool calling
+python examples/06_tool_calling_agent.py
 ```
 
 ## Architecture
@@ -252,10 +295,31 @@ class Agent:
     def process_message(self, message: str) -> str
     def add_goal(self, goal: str) -> None
     def complete_goal(self, goal: str) -> bool
-    def add_tool(self, name: str, function: Callable) -> None
+
+    # Tool methods
+    def add_tool(self, name: str, function: Callable) -> None  # Legacy
+    def add_tool_function(self, func: Callable) -> None  # For automatic calling
+
     def consolidate_memory(self, force: bool = False) -> None
     def create_subagent(self, name: str, role: str, prompt: str) -> Agent
     def get_stats(self) -> Dict[str, Any]
+```
+
+#### Tool Calling
+
+```python
+# Decorator for defining tools
+@tool(description="Tool description")
+def my_tool(param1: str, param2: int = 0) -> dict:
+    """Tool implementation."""
+    return {"result": "value"}
+
+# Tool registry
+class ToolRegistry:
+    def register(self, func: Callable) -> ToolDefinition
+    def get(self, name: str) -> Optional[ToolDefinition]
+    def call_tool(self, name: str, **kwargs) -> Any
+    def to_openai_format() -> List[Dict]
 ```
 
 #### LayeredMemory
@@ -316,6 +380,8 @@ AgentConfig(
     memory_config=MemoryConfig(),
     context_config=ContextConfig(),
     enable_streaming=False,
+    enable_tools=False,  # Enable automatic tool calling
+    max_tool_iterations=5,  # Max tool calling loops
     track_goals=True
 )
 ```

@@ -7,6 +7,7 @@ This framework implements the core patterns from modern context engineering rese
 - Context Abstraction (Self-Baking)
 - Smart Context Selection
 - Structured Agent Communication
+- Automatic Tool Calling
 
 Based on the principles of entropy reduction and semantic operating systems.
 """
@@ -17,6 +18,7 @@ from .core.agent import Agent, AgentConfig
 from .core.llm_client import LLMClient, LLMConfig
 from .core.memory import LayeredMemory, MemoryConfig
 from .core.context_manager import ContextManager, ContextConfig
+from .core.tools import tool, ToolDefinition, ToolRegistry
 
 __all__ = [
     "Agent",
@@ -27,4 +29,7 @@ __all__ = [
     "MemoryConfig",
     "ContextManager",
     "ContextConfig",
+    "tool",
+    "ToolDefinition",
+    "ToolRegistry",
 ]

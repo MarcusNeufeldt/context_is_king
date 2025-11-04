@@ -4,6 +4,7 @@ from .llm_client import LLMClient, LLMConfig
 from .agent import Agent, AgentConfig
 from .memory import LayeredMemory, MemoryConfig
 from .context_manager import ContextManager, ContextConfig
+from .tools import tool, ToolDefinition, ToolRegistry
 
 __all__ = [
     "LLMClient",
@@ -14,4 +15,7 @@ __all__ = [
     "MemoryConfig",
     "ContextManager",
     "ContextConfig",
+    "tool",
+    "ToolDefinition",
+    "ToolRegistry",
 ]
